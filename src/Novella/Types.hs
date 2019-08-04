@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE DeriveFunctor #-}
@@ -9,6 +10,7 @@ import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
+import           Data.String
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
@@ -17,7 +19,7 @@ import qualified Data.Map.Strict as M
 -- recursive grammars (no structural equality or show instances).
 newtype SchemaName =
   SchemaName String
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, IsString)
 
 -- | A schema that nodes can implement.
 data Schema
@@ -37,22 +39,22 @@ data Schema
 
 newtype Delimiter =
   Delimiter String
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, IsString)
 
 -- | Lexer name that can be used to find a lexer.
 newtype LexerName =
   LexerName String
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, IsString)
 
 -- | A category of identifier.
 newtype IdentifierCategory =
   IdentifierCategory String
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, IsString)
 
 -- | A keyword rendered in the UX. Not editable.
 newtype Keyword =
   Keyword String
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, IsString)
 
 --------------------------------------------------------------------------------
 -- High-level types for the UI
