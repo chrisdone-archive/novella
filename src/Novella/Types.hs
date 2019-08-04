@@ -5,8 +5,10 @@
 
 module Novella.Types where
 
+import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty(..))
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
@@ -60,6 +62,7 @@ data State =
   State
     { stateTypedSlot :: !TypedSlot
     , stateCursor :: !Cursor
+    , stateSchema :: !(Map SchemaName Schema)
     }
   deriving (Show, Eq)
 
@@ -90,7 +93,7 @@ data Slot a
 -- | A slot with a type.
 data TypedSlot =
   TypedSlot
-    { typedSlotSchema :: !Schema
+    { typedSlotSchema :: !SchemaName
     , typedSlotSlot :: !(Slot Node)
     }
   deriving (Show, Eq)
@@ -117,7 +120,7 @@ data Node
 -- | Editor for a list.
 data ListEditor =
   ListEditor
-    { listEditorSchema :: !Schema
+    { listEditorSchema :: !SchemaName
     , listEditorTypedSlots :: ![TypedSlot]
     , listEditorDelimiter :: !Delimiter
     }
@@ -133,7 +136,7 @@ data TupleEditor =
 -- | Editor for a composite of editors.
 data CompositeEditor =
   CompositeEditor
-    { compositeEditorSchemas :: !(NonEmpty Schema)
+    { compositeEditorSchemas :: !(NonEmpty SchemaName)
     , compositeEditorMaybeSlot :: !(Maybe TypedSlot)
     }
   deriving (Show, Eq)
@@ -159,7 +162,8 @@ data TokenEditor =
 -- UI auxilliary types
 
 -- | Some lexed token.
-newtype Token = Token String
+newtype Token =
+  Token String
   deriving (Show, Eq, Ord)
 
 -- | A ident looked up from a scope environment.
