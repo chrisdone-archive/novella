@@ -23,7 +23,7 @@ data Grammar =
     { grammarToplevel :: !SchemaName
     , grammarRules :: !(Map SchemaName Schema)
     }
-  deriving (Lift)
+  deriving (Lift, Show)
 
 -- | Used to name grammar productions, to avoid the confusion of
 -- recursive grammars (no structural equality or show instances).
