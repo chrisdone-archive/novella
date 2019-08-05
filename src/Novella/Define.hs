@@ -4,7 +4,7 @@
 -- | Mini-DSL for defining grammars.
 
 module Novella.Define
-  ( define
+  ( rule
   , Define
   , runDefine
   , checkGrammar
@@ -30,8 +30,8 @@ newtype Define a =
   deriving (Monad, Functor, Applicative, MonadFix)
 
 -- | Define a grammar production rule.
-define :: String -> Schema -> Define SchemaName
-define name schema =
+rule :: String -> Schema -> Define SchemaName
+rule name schema =
   Define
     (do modify ((SchemaName name, schema) :)
         pure (SchemaName name))

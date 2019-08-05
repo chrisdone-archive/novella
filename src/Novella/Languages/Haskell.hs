@@ -17,19 +17,26 @@ import Novella.Types (Schema(..))
 -- | Grammar for Haskell.
 grammar :: Grammar
 grammar = $(checkGrammar $ runDefine $ mdo
-  expression       <- define "Expression" (ChoiceSchema [variable, constructor, parentheses, tuple, let', application])
-  application      <- define "Application" (CompositeSchema [expression, expression])
-  openParenSchema  <- define "Open paren" (KeywordSchema "(")
-  closeParenSchema <- define "Close paren" (KeywordSchema "(")
-  parentheses      <- define "Parentheses" (CompositeSchema [openParenSchema, expression, closeParenSchema])
-  tuple            <- define "Tuple" (CompositeSchema [openParenSchema, tupleElements, closeParenSchema])
-  tupleElements    <- define "Tuple elements" (ListSchema expression ",")
-  variable         <- define "Variable" (IdentifierSchema "Variable")
-  constructor      <- define "Constructor" (IdentifierSchema "Constructor")
-  let'             <- define "Let-expression" (CompositeSchema [letKeyword, definitions, inKeyword, expression])
-  letKeyword       <- define "Let keyword" (KeywordSchema "let")
-  inKeyword        <- define "In keyword" (KeywordSchema "in")
-  eqKeyword        <- define "= keyword" (KeywordSchema "=")
-  definitions      <- define "Definitions" (ListSchema definition ";")
-  definition       <- define "Definition" (CompositeSchema [variable, eqKeyword, expression])
+  -- General expression
+  expression       <- rule "Expression" (ChoiceSchema [variable, constructor, parentheses, tuple, let', application])
+  application      <- rule "Application" (CompositeSchema [expression, expression])
+  parentheses      <- rule "Parentheses" (CompositeSchema [openParenSchema, expression, closeParenSchema])
+  -- Tuple
+  tuple            <- rule "Tuple" (CompositeSchema [openParenSchema, tupleElements, closeParenSchema])
+  tupleElements    <- rule "Tuple elements" (ListSchema expression ",")
+  -- Identifiers
+  variable         <- rule "Variable" (IdentifierSchema "Variable")
+  constructor      <- rule "Constructor" (IdentifierSchema "Constructor")
+  -- Let
+  let'             <- rule "Let-expression" (CompositeSchema [letKeyword, openCurly, definitions, closeCurly, inKeyword, expression])
+  definitions      <- rule "Definitions" (ListSchema definition ";")
+  definition       <- rule "Definition" (CompositeSchema [variable, eqKeyword, expression])
+  -- Keywords
+  openCurly        <- rule "Open curly" (KeywordSchema "{")
+  closeCurly       <- rule "Close curly" (KeywordSchema "}")
+  openParenSchema  <- rule "Open paren" (KeywordSchema "(")
+  closeParenSchema <- rule "Close paren" (KeywordSchema ")")
+  letKeyword       <- rule "Let keyword" (KeywordSchema "let")
+  inKeyword        <- rule "In keyword" (KeywordSchema "in")
+  eqKeyword        <- rule "= keyword" (KeywordSchema "=")
   pure expression)
