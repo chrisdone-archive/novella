@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveLift #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
@@ -7,19 +9,27 @@
 module Novella.Types where
 
 import           Data.List.NonEmpty (NonEmpty(..))
-import qualified Data.List.NonEmpty as NE
 import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as M
 import           Data.String
+import           Instances.TH.Lift ()
+import           Language.Haskell.TH.Lift (Lift)
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
+
+-- | A statically-checked grammar.
+data Grammar =
+  Grammar
+    { grammarToplevel :: !SchemaName
+    , grammarRules :: !(Map SchemaName Schema)
+    }
+  deriving (Lift)
 
 -- | Used to name grammar productions, to avoid the confusion of
 -- recursive grammars (no structural equality or show instances).
 newtype SchemaName =
   SchemaName String
-  deriving (Show, Eq, Ord, IsString)
+  deriving (Show, Eq, Ord, IsString, Lift)
 
 -- | A schema that nodes can implement.
 data Schema
@@ -35,26 +45,26 @@ data Schema
     -- ^ A list of the given schema, separated by delimiter.
   | CompositeSchema !(NonEmpty SchemaName)
     -- ^ A composite of the given different schemas.
-  deriving (Show, Eq)
+  deriving (Show, Eq, Lift)
 
 newtype Delimiter =
   Delimiter String
-  deriving (Show, Eq, Ord, IsString)
+  deriving (Show, Eq, Ord, IsString, Lift)
 
 -- | Lexer name that can be used to find a lexer.
 newtype LexerName =
   LexerName String
-  deriving (Show, Eq, Ord, IsString)
+  deriving (Show, Eq, Ord, IsString, Lift)
 
 -- | A category of identifier.
 newtype IdentifierCategory =
   IdentifierCategory String
-  deriving (Show, Eq, Ord, IsString)
+  deriving (Show, Eq, Ord, IsString, Lift)
 
 -- | A keyword rendered in the UX. Not editable.
 newtype Keyword =
   Keyword String
-  deriving (Show, Eq, Ord, IsString)
+  deriving (Show, Eq, Ord, IsString, Lift)
 
 --------------------------------------------------------------------------------
 -- High-level types for the UI

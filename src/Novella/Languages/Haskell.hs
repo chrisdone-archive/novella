@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -5,15 +6,17 @@
 
 -- | Grammar for Haskell.
 
-module Novella.Languages.Haskell where
+module Novella.Languages.Haskell
+  ( grammar
+  ) where
 
-import Data.Map.Strict (Map)
+import Instances.TH.Lift ()
 import Novella.Define
-import Novella.Types (Schema(..), SchemaName(..))
+import Novella.Types (Schema(..))
 
 -- | Grammar for Haskell.
-haskell :: (SchemaName, Map SchemaName Schema)
-haskell = runDefine $ mdo
+grammar :: Grammar
+grammar = $(checkGrammar $ runDefine $ mdo
   expression       <- define "Expression" (ChoiceSchema [variable, constructor, parentheses, tuple])
   openParenSchema  <- define "Open paren" (KeywordSchema "(")
   closeParenSchema <- define "Close paren" (KeywordSchema "(")
@@ -22,4 +25,4 @@ haskell = runDefine $ mdo
   tupleElements    <- define "Tuple elements" (ListSchema expression ",")
   variable         <- define "Variable" (IdentifierSchema "Variable")
   constructor      <- define "Constructor" (IdentifierSchema "Constructor")
-  pure expression
+  pure expression)

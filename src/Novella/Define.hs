@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- | Mini-DSL for defining grammars.
@@ -6,21 +7,25 @@ module Novella.Define
   ( define
   , Define
   , runDefine
+  , checkGrammar
+  , Grammar
+  , grammarToplevel
+  , grammarRules
   ) where
 
-import           Control.Monad.State.Lazy
-import           Data.Map.Strict (Map)
+import           Control.Monad.State.Lazy hiding (lift)
 import qualified Data.Map.Strict as M
-import           Novella.Types (Schema(..), SchemaName(..))
+import           Language.Haskell.TH.Syntax
+import           Novella.Types (Schema(..), SchemaName(..), Grammar(..))
 
 -- | Define the grammar, returning the top-level production.
-runDefine :: Define SchemaName -> (SchemaName, Map SchemaName Schema)
+runDefine :: Define SchemaName -> (SchemaName, [(SchemaName, Schema)])
 runDefine = flip runState mempty . unDefine
 
 -- | A defining monad.
 newtype Define a =
   Define
-    { unDefine :: State (Map SchemaName Schema) a
+    { unDefine :: State [(SchemaName, Schema)] a
     }
   deriving (Monad, Functor, Applicative, MonadFix)
 
@@ -28,5 +33,14 @@ newtype Define a =
 define :: String -> Schema -> Define SchemaName
 define name schema =
   Define
-    (do modify (M.insert (SchemaName name) schema)
+    (do modify ((SchemaName name, schema) :)
         pure (SchemaName name))
+
+-- | Check the grammar spec to produce a grammar.
+checkGrammar :: (SchemaName, [(SchemaName, Schema)]) -> Q Exp
+checkGrammar (toplevel, rules) =
+  if M.size rulesMap /= length rules
+    then error "Duplicate rule names in grammar."
+    else lift (Grammar {grammarToplevel = toplevel, grammarRules = rulesMap})
+  where
+    rulesMap = M.fromList rules
