@@ -8,11 +8,12 @@
 
 module Novella.Types where
 
-import           Data.List.NonEmpty (NonEmpty(..))
-import           Data.Map.Strict (Map)
-import           Data.String
-import           Instances.TH.Lift ()
-import           Language.Haskell.TH.Lift (Lift)
+import Data.List.NonEmpty (NonEmpty(..))
+import Data.Map.Strict (Map)
+import Data.String
+import Instances.TH.Lift ()
+import Language.Haskell.TH.Lift (Lift)
+import Language.Haskell.TH.Syntax (Name)
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
@@ -53,8 +54,8 @@ newtype Delimiter =
 
 -- | Lexer name that can be used to find a lexer.
 newtype LexerName =
-  LexerName String
-  deriving (Show, Eq, Ord, IsString, Lift)
+  LexerName Name
+  deriving (Show, Eq, Ord, Lift)
 
 -- | A category of identifier.
 newtype IdentifierCategory =
