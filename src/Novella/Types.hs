@@ -95,9 +95,26 @@ data Cursor
 
 -- | User input; key press, mouse click, etc.
 data Input
+  = CharInput !Char
+  | CtrlInput
+  | ShiftInput
+  | AltInput
+  | EscInput
+  | BackspaceInput
+  | DeleteInput
+  | TabInput
+  | SpaceInput
+  | UpInput
+  | DownInput
+  | LeftInput
+  | RightInput
+  deriving (Show, Eq)
 
--- | Events that cause a change in the state.
-data Event
+-- | Commands that cause a change in the state.
+data Command
+
+-- | An error resulting from trying to parse inputs into a command.
+data CommandParseError
 
 --------------------------------------------------------------------------------
 -- The UI tree of editors
