@@ -70,12 +70,18 @@ newtype Keyword =
 --------------------------------------------------------------------------------
 -- High-level types for the UI
 
+-- | Config of the app.
+data Config =
+  Config
+    { configSchema :: !(Map SchemaName Schema)
+    }
+  deriving (Show)
+
 -- | State of the app.
 data State =
   State
     { stateTypedSlot :: !TypedSlot
     , stateCursor :: !Cursor
-    , stateSchema :: !(Map SchemaName Schema)
     }
   deriving (Show, Eq)
 
