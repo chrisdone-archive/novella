@@ -5,29 +5,21 @@
 
 packages:
 - completed:
-    size: 91999
+    size: 92154
     subdir: reparsec
-    url: https://github.com/chrisdone/streaming-parsers/archive/09e22ca1c61d9a0f92545191c922b592760c1f5a.tar.gz
+    url: https://github.com/chrisdone/streaming-parsers/archive/302ecfc3561eafff1b296e7d681366217f94847a.tar.gz
     cabal-file:
-      size: 986
-      sha256: 6eaf66e8f06fc24223a606c269a2757189429dd6cec1c75e9567d91488590ec2
+      size: 995
+      sha256: a9e91c09182c8573fdde919bb1e6e117fa5b373543aa6fcf58075dafff3b754f
     name: reparsec
     version: 0.0.0
-    sha256: 2025a5ed77c2b70e3db9fa8aeef8e1122a322233cd72ee03dcd04ecbe727704d
+    sha256: dccc6b5bed34c15818f23fdd575aa5e467419e76334f6841cb1ad533300df11d
     pantry-tree:
       size: 474
-      sha256: bf22a448fba648ceda8f1d020f701ded5166da9f52de379119700ef1f85423e4
+      sha256: ff08295b2eae7b0d3611abc78014f2a9830e1633afc24d6ca7f374568032482b
   original:
-    size: 91999
     subdir: reparsec
-    url: https://github.com/chrisdone/streaming-parsers/archive/09e22ca1c61d9a0f92545191c922b592760c1f5a.tar.gz
-    cabal-file:
-      size: 986
-      sha256: 6eaf66e8f06fc24223a606c269a2757189429dd6cec1c75e9567d91488590ec2
-    sha256: 2025a5ed77c2b70e3db9fa8aeef8e1122a322233cd72ee03dcd04ecbe727704d
-    pantry-tree:
-      size: 474
-      sha256: bf22a448fba648ceda8f1d020f701ded5166da9f52de379119700ef1f85423e4
+    url: https://github.com/chrisdone/streaming-parsers/archive/302ecfc3561eafff1b296e7d681366217f94847a.tar.gz
 snapshots:
 - completed:
     size: 500539
