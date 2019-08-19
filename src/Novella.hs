@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 -- | The Novella structured editor.
 
 module Novella
@@ -27,5 +29,7 @@ commandParser = quit
   where quit = QuitCommand <$ Reparsec.expect EscInput
 
 -- | Transform the state given the config and the command.
-transformState :: Monad m => Config -> Command -> StateT State m ()
-transformState = undefined
+transformState :: Monad m => Config -> Command -> StateT State m Loop
+transformState _config =
+  \case
+    QuitCommand -> pure ExitLoop

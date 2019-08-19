@@ -87,6 +87,11 @@ data State =
     }
   deriving (Show, Eq)
 
+-- | A flag to indicate what to do after transforming the state.
+data Loop
+  = ExitLoop
+  | ContinueLoop
+
 -- | Cursor pointing to a place within the tree.
 data Cursor
   = InList !Int !Cursor
