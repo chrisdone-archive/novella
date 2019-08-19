@@ -23,7 +23,8 @@ commandConduit = Reparsec.parseConduit commandParser
 -- | Produce a command from a stream of inputs.
 commandParser ::
      Monad m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-commandParser = undefined
+commandParser = quit
+  where quit = QuitCommand <$ Reparsec.expect EscInput
 
 -- | Transform the state given the config and the command.
 transformState :: Monad m => Config -> Command -> StateT State m ()

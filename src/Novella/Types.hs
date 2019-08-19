@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -8,12 +9,13 @@
 
 module Novella.Types where
 
-import Data.List.NonEmpty (NonEmpty(..))
-import Data.Map.Strict (Map)
-import Data.String
-import Instances.TH.Lift ()
-import Language.Haskell.TH.Lift (Lift)
-import Language.Haskell.TH.Syntax (Name)
+import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.Map.Strict (Map)
+import qualified Data.Reparsec as Reparsec
+import           Data.String
+import           Instances.TH.Lift ()
+import           Language.Haskell.TH.Lift (Lift)
+import           Language.Haskell.TH.Syntax (Name)
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
@@ -111,10 +113,19 @@ data Input
   deriving (Show, Eq)
 
 -- | Commands that cause a change in the state.
-data Command
+data Command =
+  QuitCommand
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
+  = ExpectedButGot Input Input
+  | NoMoreInput
+
+instance Reparsec.UnexpectedToken Input CommandParseError where
+  expectedButGot = ExpectedButGot
+
+instance Reparsec.NoMoreInput CommandParseError where
+  noMoreInputError = NoMoreInput
 
 --------------------------------------------------------------------------------
 -- The UI tree of editors
