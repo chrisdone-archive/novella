@@ -52,6 +52,7 @@ library
     -- Needed for Brick UI
     , vty
     , brick
+    , validation
   default-language: Haskell2010
 
 executable novella-brick

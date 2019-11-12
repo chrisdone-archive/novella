@@ -115,6 +115,8 @@ data Input
   | DownInput
   | LeftInput
   | RightInput
+  | EnterInput
+  | MetaInput
   deriving (Show, Eq)
 
 -- | Commands that cause a change in the state.
