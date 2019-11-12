@@ -1,7 +1,7 @@
-resolver: lts-13.30
+resolver: lts-14.14
 packages:
 - .
 extra-deps:
-  - github: chrisdone/streaming-parsers
-    commit: 302ecfc3561eafff1b296e7d681366217f94847a
-    subdir: reparsec
+- github: chrisdone/streaming-parsers
+  commit: 302ecfc3561eafff1b296e7d681366217f94847a
+  subdir: reparsec
