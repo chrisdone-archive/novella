@@ -25,9 +25,10 @@ commandConduit = Reparsec.parseConduit commandParser
 -- | Produce a command from a stream of inputs.
 commandParser ::
      Monad m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-commandParser = quit <> exit
+commandParser = quit <> exit <> ctrlc
   where quit = QuitCommand <$ Reparsec.expect EscInput
         exit = EXITCommand <$ traverse (Reparsec.expect . CharInput) "exit"
+        ctrlc = CtrlCCommand <$ Reparsec.expect CtrlInput <* Reparsec.expect (CharInput 'c')
 
 -- | Transform the state given the config and the command.
 transformState :: Monad m => Config -> Command -> StateT State m Loop
@@ -35,3 +36,4 @@ transformState _config =
   \case
     QuitCommand -> pure ExitLoop
     EXITCommand -> pure ExitLoop
+    CtrlCCommand -> pure ExitLoop

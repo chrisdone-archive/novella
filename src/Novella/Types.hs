@@ -123,6 +123,7 @@ data Input
 data Command
   = QuitCommand
   | EXITCommand
+  | CtrlCCommand
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
