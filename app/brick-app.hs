@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Entry point to Brick-based frontend for novella.
@@ -11,9 +12,10 @@ import qualified Novella.Languages.Haskell as Haskell
 import Novella.Types
 
 main :: IO ()
-main = void (defaultMain (app config) state)
+main = void (defaultMain (app config) brickState)
   where
     config = Config {configSchema = grammarRules Haskell.grammar}
+    brickState = BrickState {state, partial = Nothing}
     state =
       State
         { stateTypedSlot =
