@@ -85,7 +85,6 @@ handleEvKey config brickState@BrickState {state, partial} key modifiers =
             Partial cont ->
               Brick.continue brickState {partial = pure cont} -- TODO: display problem.
 
-
 -- | Convert a Vty modifier to a regular Novella input.
 modifierToInput :: Vty.Modifier -> Validation (NonEmpty Vty.Modifier) Input
 modifierToInput =
