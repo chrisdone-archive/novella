@@ -120,13 +120,18 @@ data Input
   deriving (Show, Eq)
 
 -- | Commands that cause a change in the state.
-data Command =
-  QuitCommand
+data Command
+  = QuitCommand
+  | EXITCommand
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
   = ExpectedButGot Input Input
   | NoMoreInput
+  | ManyProblems (NonEmpty (CommandParseError))
+
+instance Semigroup CommandParseError where
+  (<>) x y = ManyProblems (pure x <> pure y)
 
 instance Reparsec.UnexpectedToken Input CommandParseError where
   expectedButGot = ExpectedButGot

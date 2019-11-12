@@ -10,6 +10,7 @@ import qualified Brick
 import           Control.Monad.State.Strict (runState)
 import           Control.Monad.Trans.Reader
 import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.Maybe
 import           Data.Reparsec
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
@@ -61,7 +62,7 @@ handleEvKey ::
   -> Vty.Key
   -> [Vty.Modifier]
   -> Brick.EventM n (Brick.Next BrickState)
-handleEvKey config brickState@BrickState{state} key modifiers =
+handleEvKey config brickState@BrickState {state, partial} key modifiers =
   case traverse modifierToInput (Seq.fromList modifiers) of
     Failure _badModifiers -> Brick.continue brickState -- TODO: display bad keys.
     Success modifierInputs ->
@@ -69,16 +70,18 @@ handleEvKey config brickState@BrickState{state} key modifiers =
         Left _badKey -> Brick.continue brickState -- TODO: display problem.
         Right keyInput ->
           case runReader
-                 (parseResultT
-                    commandParser
+                 (fromMaybe
+                    (parseResultT commandParser)
+                    partial
                     (pure (modifierInputs <> pure keyInput)))
                  state of
             Done _inputsConsumed _position _more command ->
               case runState (transformState config command) state of
-                (ExitLoop, state') -> Brick.halt (brickState {state=state'})
-                (ContinueLoop, state') -> Brick.continue (brickState {state = state'})
+                (ExitLoop, state') -> Brick.halt (brickState {state = state'})
+                (ContinueLoop, state') ->
+                  Brick.continue (brickState {state = state'})
             Failed _inputsConsumed _position _more _reason ->
-              Brick.continue brickState -- TODO: display reason.
+              Brick.continue brickState {partial = Nothing} -- TODO: display reason.
             Partial cont ->
               Brick.continue brickState {partial = pure cont} -- TODO: display problem.
 
