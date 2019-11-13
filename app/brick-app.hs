@@ -20,6 +20,6 @@ main = void (defaultMain (app config) brickState)
       State
         { stateTypedSlot =
             TypedSlot
-              {typedSlotSlot = EmptySlot, typedSlotSchema = "Expression"}
+              {typedSlotSlot = QuerySlot mempty, typedSlotSchema = "Expression"}
         , stateCursor = Here
         }

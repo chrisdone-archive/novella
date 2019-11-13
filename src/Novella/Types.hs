@@ -145,8 +145,7 @@ instance Reparsec.NoMoreInput CommandParseError where
 
 -- | A slot in the tree.
 data Slot a
-  = EmptySlot
-  | QuerySlot !Query
+  = QuerySlot !Query
   | FilledSlot !a
   deriving (Show, Eq, Functor, Traversable, Foldable)
 
@@ -234,4 +233,4 @@ newtype Identifier =
 -- | A text query for the right node.
 newtype Query =
   Query String
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Monoid, Semigroup)

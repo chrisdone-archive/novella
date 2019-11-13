@@ -10,6 +10,8 @@ import qualified Brick
 import           Control.Monad.State.Strict (runState)
 import           Control.Monad.Trans.Reader
 import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Data.Reparsec
 import           Data.Sequence (Seq)
@@ -19,36 +21,56 @@ import qualified Graphics.Vty as Vty
 import           Novella
 import           Novella.Types
 
+--------------------------------------------------------------------------------
+-- Brick-specific types
+
 data BrickState = BrickState
   { state :: State
   , partial :: Maybe (Maybe (Seq Input) -> Reader State (Result (Reader State) (Seq Input) CommandParseError Command))
   }
 
-data NovellaEvent =
-  StartEvent
+--------------------------------------------------------------------------------
+-- Brick app
 
-data NovellaResource = NovellaResource
-  deriving (Ord, Eq)
-
-app :: Config -> Brick.App BrickState NovellaEvent NovellaResource
+app :: Config -> Brick.App BrickState () ()
 app config =
   Brick.App
-    { appDraw = draw
+    { appDraw = drawBrickState config
     , appChooseCursor = \_state [] -> Nothing
     , appHandleEvent = handleEvent config
     , appStartEvent = pure
     , appAttrMap = const (Brick.attrMap Vty.defAttr [])
     }
 
-draw :: p -> [Brick.Widget NovellaResource]
-draw _state = [ui]
+--------------------------------------------------------------------------------
+-- View
+
+drawBrickState :: Config -> BrickState -> [Brick.Widget ()]
+drawBrickState Config {configSchema = schema} BrickState {state} =
+  case slot of
+    QuerySlot q -> drawQuery schema schemaName q
+    FilledSlot node -> drawNode node
+  where
+    TypedSlot {typedSlotSchema = schemaName, typedSlotSlot = slot} = typedSlot
+    State {stateTypedSlot = typedSlot} = state
+
+drawNode :: Node -> [Brick.Widget ()]
+drawNode =
+  \case
+    _ -> [Brick.str "TODO: drawNode"]
+
+drawQuery :: Map SchemaName Schema -> SchemaName -> Query -> [Brick.Widget ()]
+drawQuery schema schemaName (Query string) = [Brick.str "TODO: drawQuery"]
+
+--------------------------------------------------------------------------------
+-- Handling inputs
 
 -- | Handle an incoming event.
 handleEvent ::
      Config
   -> BrickState
-  -> Brick.BrickEvent NovellaResource NovellaEvent
-  -> Brick.EventM NovellaResource (Brick.Next BrickState)
+  -> Brick.BrickEvent () ()
+  -> Brick.EventM () (Brick.Next BrickState)
 handleEvent config brickState event =
   case event of
     Brick.VtyEvent (Vty.EvKey key modifiers) ->
@@ -107,6 +129,3 @@ keyToInput =
     Vty.KUp -> pure (UpInput)
     Vty.KDown -> pure (DownInput)
     key -> Left key
-
-ui :: Brick.Widget NovellaResource
-ui = Brick.str "Hello, world!"
