@@ -18,11 +18,11 @@ main = void (defaultMain (app config) brickState)
     brickState = BrickState {state, partial = Nothing}
     state =
       State
-        { stateTypedSlot =
+        { _stateTypedSlot =
             TypedSlot
-              { typedSlotSlot =
-                  QuerySlot (Query {queryText = "", querySelection = 0})
-              , typedSlotSchema = "Expression"
+              { _typedSlotSlot =
+                  QuerySlot (Query {_queryText = "", _querySelection = 0})
+              , _typedSlotSchema = "Expression"
               }
-        , stateCursor = Here
+        , _stateCursor = Here
         }

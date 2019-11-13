@@ -55,8 +55,8 @@ drawBrickState Config {configSchema = schema} BrickState {state} =
     QuerySlot q -> drawQuery schema schemaName q
     FilledSlot node -> drawNode node
   where
-    TypedSlot {typedSlotSchema = schemaName, typedSlotSlot = slot} = typedSlot
-    State {stateTypedSlot = typedSlot} = state
+    TypedSlot {_typedSlotSchema = schemaName, _typedSlotSlot = slot} = typedSlot
+    State {_stateTypedSlot = typedSlot} = state
 
 drawNode :: Node -> [Brick.Widget ()]
 drawNode =

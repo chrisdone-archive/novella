@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -16,6 +17,7 @@ import           Data.String
 import           Instances.TH.Lift ()
 import           Language.Haskell.TH.Lift (Lift)
 import           Language.Haskell.TH.Syntax (Name)
+import           Optics.TH
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
@@ -82,8 +84,8 @@ data Config =
 -- | State of the app.
 data State =
   State
-    { stateTypedSlot :: !TypedSlot
-    , stateCursor :: !Cursor
+    { _stateTypedSlot :: !TypedSlot
+    , _stateCursor :: !Cursor
     }
   deriving (Show, Eq)
 
@@ -125,6 +127,7 @@ data Command
   | EXITCommand
   | CtrlCCommand
   | DownCommand
+  | UpCommand
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
@@ -153,8 +156,8 @@ data Slot a
 -- | A slot with a type.
 data TypedSlot =
   TypedSlot
-    { typedSlotSchema :: !SchemaName
-    , typedSlotSlot :: !(Slot Node)
+    { _typedSlotSchema :: !SchemaName
+    , _typedSlotSlot :: !(Slot Node)
     }
   deriving (Show, Eq)
 
@@ -233,6 +236,14 @@ newtype Identifier =
 
 -- | A text query for the right node.
 data Query = Query
-  { queryText :: String
-  , querySelection :: Int
+  { _queryText :: String
+  , _querySelection :: Int
   } deriving (Show, Eq, Ord)
+
+--------------------------------------------------------------------------------
+-- Deriving optics
+
+makeLenses ''State
+makeLenses ''TypedSlot
+makePrisms ''Slot
+makeLenses ''Query
