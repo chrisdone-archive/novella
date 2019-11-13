@@ -44,7 +44,12 @@ app config =
     , appHandleEvent = handleEvent config
     , appStartEvent = pure
     , appAttrMap =
-        const (Brick.attrMap Vty.defAttr [(selectedListItem, Brick.bg Vty.blue)])
+        const
+          (Brick.attrMap
+             Vty.defAttr
+             [ (keywordAttr, Brick.fg Vty.green)
+             , (selectedListItem, Brick.bg Vty.blue)
+             ])
     }
 
 --------------------------------------------------------------------------------
@@ -91,6 +96,9 @@ drawChoiceList selection xs =
 selectedListItem :: Brick.AttrName
 selectedListItem = "selected-list-item"
 
+keywordAttr :: Brick.AttrName
+keywordAttr = "keyword"
+
 drawSchemaDeep :: Map SchemaName Schema -> Schema -> [Brick.Widget n]
 drawSchemaDeep schemas =
   \case
@@ -136,7 +144,7 @@ drawSchemaAtomic schemas schemaName =
         CompositeSchema {} -> drawSchemaName schemaName
 
 drawKeyword :: Keyword -> Brick.Widget n
-drawKeyword (Keyword string) = Brick.str string
+drawKeyword (Keyword string) = Brick.forceAttr keywordAttr (Brick.str string)
 
 drawSchemaName :: SchemaName -> Brick.Widget n
 drawSchemaName (SchemaName string) = Brick.str ("<" ++ string ++ ">")
