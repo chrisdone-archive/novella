@@ -124,6 +124,7 @@ data Command
   = QuitCommand
   | EXITCommand
   | CtrlCCommand
+  | DownCommand
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
