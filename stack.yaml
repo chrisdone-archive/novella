@@ -5,3 +5,5 @@ extra-deps:
 - github: chrisdone/streaming-parsers
   commit: 302ecfc3561eafff1b296e7d681366217f94847a
   subdir: reparsec
+- optics-0.2@sha256:813ef6cc4d2e2b5ee00435831031f38917ba01d1e56dcb62dc18cd0315a9ccb7,6296
+- optics-th-0.2@sha256:b4f6c5a3f134c697837190ed6da969dd284aefe79e43c3ef793093b607bb83b9,1929

@@ -17,6 +17,20 @@ packages:
   original:
     subdir: reparsec
     url: https://github.com/chrisdone/streaming-parsers/archive/302ecfc3561eafff1b296e7d681366217f94847a.tar.gz
+- completed:
+    hackage: optics-0.2@sha256:813ef6cc4d2e2b5ee00435831031f38917ba01d1e56dcb62dc18cd0315a9ccb7,6296
+    pantry-tree:
+      size: 1003
+      sha256: 8a74dbcd983fcc96b7b6c5c9fc6da7240dd2e5bdab7caa4927b8287a4cbe5c0f
+  original:
+    hackage: optics-0.2@sha256:813ef6cc4d2e2b5ee00435831031f38917ba01d1e56dcb62dc18cd0315a9ccb7,6296
+- completed:
+    hackage: optics-th-0.2@sha256:b4f6c5a3f134c697837190ed6da969dd284aefe79e43c3ef793093b607bb83b9,1929
+    pantry-tree:
+      size: 653
+      sha256: f6b5caed956d3761b35769ac518d3f0f407449dafe33154992386f02d9489bad
+  original:
+    hackage: optics-th-0.2@sha256:b4f6c5a3f134c697837190ed6da969dd284aefe79e43c3ef793093b607bb83b9,1929
 snapshots:
 - completed:
     size: 525663

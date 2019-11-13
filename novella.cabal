@@ -48,6 +48,8 @@ library
     , th-lift
     , th-lift-instances
     , transformers
+    , optics
+    , optics-th
 
     -- Needed for Brick UI
     , vty
