@@ -231,6 +231,7 @@ newtype Identifier =
   deriving (Show, Eq, Ord)
 
 -- | A text query for the right node.
-newtype Query =
-  Query String
-  deriving (Show, Eq, Ord, Monoid, Semigroup)
+data Query = Query
+  { queryText :: String
+  , querySelection :: Int
+  } deriving (Show, Eq, Ord)

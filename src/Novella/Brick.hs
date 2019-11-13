@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
 
@@ -9,6 +10,8 @@ module Novella.Brick where
 import qualified Brick
 import           Control.Monad.State.Strict (runState)
 import           Control.Monad.Trans.Reader
+import           Data.Foldable
+import           Data.List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
@@ -39,7 +42,8 @@ app config =
     , appChooseCursor = \_state [] -> Nothing
     , appHandleEvent = handleEvent config
     , appStartEvent = pure
-    , appAttrMap = const (Brick.attrMap Vty.defAttr [])
+    , appAttrMap =
+        const (Brick.attrMap Vty.defAttr [(selectedListItem, Brick.bg Vty.blue)])
     }
 
 --------------------------------------------------------------------------------
@@ -60,7 +64,82 @@ drawNode =
     _ -> [Brick.str "TODO: drawNode"]
 
 drawQuery :: Map SchemaName Schema -> SchemaName -> Query -> [Brick.Widget ()]
-drawQuery schema schemaName (Query string) = [Brick.str "TODO: drawQuery"]
+drawQuery schemas schemaName (Query string selection) =
+  case M.lookup schemaName schemas of
+    Nothing -> [Brick.str "INVALID SCHEMA NAME!"]
+    Just schema ->
+      [ Brick.vBox
+          [ Brick.str ("Query: " ++ string)
+          , drawChoiceList selection (drawSchemaDeep schemas schema)
+          ]
+      ]
+
+drawChoiceList :: Int -> [Brick.Widget n] -> Brick.Widget n
+drawChoiceList selection xs =
+  Brick.vBox
+    (Brick.str "Choices:" :
+     zipWith
+       (\i ->
+          if i == selection
+            then Brick.forceAttr selectedListItem
+            else id)
+       [0..] xs)
+
+selectedListItem :: Brick.AttrName
+selectedListItem = "selected-list-item"
+
+drawSchemaDeep :: Map SchemaName Schema -> Schema -> [Brick.Widget n]
+drawSchemaDeep schemas =
+  \case
+    KeywordSchema keyword -> [drawKeyword keyword]
+    TokenSchema (LexerName name) -> [Brick.str ("<" ++ show name ++ ">")]
+    IdentifierSchema (IdentifierCategory category) ->
+      [Brick.str ("<" ++ category ++ ">")]
+    ChoiceSchema schemaNames ->
+      fmap (drawSchemaShallow schemas) (toList schemaNames)
+    ListSchema schemaName (Delimiter _delimiter) ->
+      [brickUnwords [Brick.str "LIST OF", drawSchemaShallow schemas schemaName]]
+    CompositeSchema schemaNames ->
+      map (drawSchemaShallow schemas) (toList schemaNames)
+
+drawSchemaShallow :: Map SchemaName Schema -> SchemaName -> Brick.Widget n
+drawSchemaShallow schemas schemaName =
+  case M.lookup schemaName schemas of
+    Nothing -> error "drawSchemaShallow"
+    Just schema ->
+      case schema of
+        KeywordSchema keyword -> drawKeyword keyword
+        TokenSchema (LexerName name) -> Brick.str ("<" ++ show name ++ ">")
+        IdentifierSchema (IdentifierCategory category) ->
+          Brick.str ("<" ++ category ++ ">")
+        ChoiceSchema{} -> drawSchemaName schemaName
+        ListSchema {} ->
+          brickUnwords [Brick.str "LIST OF",drawSchemaAtomic schemas schemaName]
+        CompositeSchema schemaNames ->
+          brickUnwords (map (drawSchemaAtomic schemas) (toList schemaNames))
+
+drawSchemaAtomic :: Map SchemaName Schema -> SchemaName -> Brick.Widget n
+drawSchemaAtomic schemas schemaName =
+  case M.lookup schemaName schemas of
+    Nothing -> error "drawSchemaAtomic"
+    Just schema ->
+      case schema of
+        KeywordSchema keyword -> drawKeyword keyword
+        TokenSchema (LexerName name) -> Brick.str ("<" ++ show name ++ ">")
+        IdentifierSchema (IdentifierCategory category) ->
+          Brick.str ("<" ++ category ++ ">")
+        ChoiceSchema{} -> drawSchemaName schemaName
+        ListSchema {} -> drawSchemaName schemaName
+        CompositeSchema {} -> drawSchemaName schemaName
+
+drawKeyword :: Keyword -> Brick.Widget n
+drawKeyword (Keyword string) = Brick.str string
+
+drawSchemaName :: SchemaName -> Brick.Widget n
+drawSchemaName (SchemaName string) = Brick.str ("<" ++ string ++ ">")
+
+brickUnwords :: [Brick.Widget n] -> Brick.Widget n
+brickUnwords xs = Brick.hBox (intersperse (Brick.str " ") xs)
 
 --------------------------------------------------------------------------------
 -- Handling inputs
