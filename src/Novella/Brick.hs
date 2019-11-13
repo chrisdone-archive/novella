@@ -8,6 +8,7 @@
 module Novella.Brick where
 
 import qualified Brick
+import qualified Brick.Widgets.Border as Brick
 import           Control.Monad.State.Strict (runState)
 import           Control.Monad.Trans.Reader
 import           Data.Foldable
@@ -69,21 +70,23 @@ drawQuery schemas schemaName (Query string selection) =
     Nothing -> [Brick.str "INVALID SCHEMA NAME!"]
     Just schema ->
       [ Brick.vBox
-          [ Brick.str ("Query: " ++ string)
+          [ Brick.str string
           , drawChoiceList selection (drawSchemaDeep schemas schema)
           ]
       ]
 
 drawChoiceList :: Int -> [Brick.Widget n] -> Brick.Widget n
 drawChoiceList selection xs =
-  Brick.vBox
-    (Brick.str "Choices:" :
-     zipWith
-       (\i ->
-          if i == selection
-            then Brick.forceAttr selectedListItem
-            else id)
-       [0..] xs)
+  Brick.borderWithLabel
+    (Brick.str "Choices")
+    (Brick.vBox
+       (zipWith
+          (\i ->
+             if i == selection
+               then Brick.forceAttr selectedListItem
+               else id)
+          [0 ..]
+          xs))
 
 selectedListItem :: Brick.AttrName
 selectedListItem = "selected-list-item"
