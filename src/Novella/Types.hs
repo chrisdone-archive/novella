@@ -257,10 +257,7 @@ typedSlotTraversalAtCursor = traversalVL visit
       State <$>
       fmap
         (flip (set typedSlotSlot) _stateTypedSlot)
-        (traverseOf
-           (typedSlotTraversalViaCursor _stateCursor)
-           (f)
-           _stateTypedSlot) <*>
+        (traverseOf (typedSlotTraversalViaCursor _stateCursor) f _stateTypedSlot) <*>
       pure _stateCursor
 
 -- This traversal works on the typed slot at the cursor, if there is
