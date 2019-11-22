@@ -1,3 +1,7 @@
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveLift #-}
@@ -17,7 +21,7 @@ import           Data.String
 import           Instances.TH.Lift ()
 import           Language.Haskell.TH.Lift (Lift)
 import           Language.Haskell.TH.Syntax (Name)
-import           Optics.TH
+import           Optics
 
 --------------------------------------------------------------------------------
 -- Schemas describing the syntax of a language
@@ -44,12 +48,12 @@ data Schema
     -- ^ Some literal token that can be lexed by the given lexer.
   | IdentifierSchema !IdentifierCategory
     -- ^ An identifier in the given category.
-  | ChoiceSchema !(NonEmpty SchemaName)
-    -- ^ A choice between the given schemas.
   | ListSchema !SchemaName !Delimiter
     -- ^ A list of the given schema, separated by delimiter.
   | CompositeSchema !(NonEmpty SchemaName)
     -- ^ A composite of the given different schemas.
+  | ChoiceSchema !(NonEmpty SchemaName)
+    -- ^ A choice between the given schemas.
   deriving (Show, Eq, Lift)
 
 newtype Delimiter =
@@ -94,12 +98,12 @@ data Loop
   = ExitLoop
   | ContinueLoop
 
--- | Cursor pointing to a place within the tree.
+-- | Cursor pointing to a place within the tree. Tagged so that we can
+-- go up/down easily.
 data Cursor
-  = InList !Int !Cursor
+  = Here
+  | InList !Int !Cursor
   | InComposite !Int !Cursor
-  | InChoice !Cursor
-  | Here
   deriving (Show, Eq)
 
 -- | User input; key press, mouse click, etc.
@@ -165,50 +169,24 @@ data TypedSlot =
 data Node
   = KeywordNode !Keyword
     -- ^ A non-editable keyword.
-  | ListNode !ListEditor
-    -- ^ An arbitrary-sized list of a single schema type of slots.
-  | TupleNode !TupleEditor
-    -- ^ A fixed-size n-tuple of different schema type slots.
-  | CompositeNode !CompositeEditor
-    -- ^ A composite of schemas and a single slot.
-  | IdentifierNode !IdentifierEditor
-    -- ^ A lookup node (variable, constructor, anything named).
   | TokenNode !TokenEditor
     -- ^ Token node.
-    deriving (Show, Eq)
+  | IdentifierNode !IdentifierEditor
+    -- ^ A lookup node (variable, constructor, anything named).
+  | ListNode !ListEditor
+    -- ^ An arbitrary-sized list of a single schema type of slots.
+  | CompositeNode !CompositeEditor
+    -- ^ A fixed-size n-tuple of different schema type slots.
+  deriving (Show, Eq)
 
 --------------------------------------------------------------------------------
 -- Editors
-
--- | Editor for a list.
-data ListEditor =
-  ListEditor
-    { listEditorSchema :: !SchemaName
-    , listEditorTypedSlots :: ![TypedSlot]
-    , listEditorDelimiter :: !Delimiter
-    }
-  deriving (Show, Eq)
-
--- | Editor for a tuple.
-data TupleEditor =
-  TupleEditor
-    { tupleEditorTypedSlots :: !(NonEmpty TypedSlot)
-    }
-  deriving (Show, Eq)
-
--- | Editor for a composite of editors.
-data CompositeEditor =
-  CompositeEditor
-    { compositeEditorSchemas :: !(NonEmpty SchemaName)
-    , compositeEditorMaybeSlot :: !(Maybe TypedSlot)
-    }
-  deriving (Show, Eq)
 
 -- | Editor for a identifier of editors.
 data IdentifierEditor =
   IdentifierEditor
     { identifierEditorIdentifierCategory :: IdentifierCategory
-    , identifierEditorSlot :: !(Slot Identifier)
+    , identifierEditorSlot :: !Identifier
     }
   deriving (Show, Eq)
 
@@ -218,6 +196,22 @@ data TokenEditor =
   TokenEditor
     { tokenEditorLexerName :: !LexerName
     , tokenEditorMaybeToken :: !(Maybe Token)
+    }
+  deriving (Show, Eq)
+
+-- | Editor for a list.
+data ListEditor =
+  ListEditor
+    { _listEditorSchema :: !SchemaName
+    , _listEditorSlots :: ![Slot Node]
+    , _listEditorDelimiter :: !Delimiter
+    }
+  deriving (Show, Eq)
+
+-- | Editor for a composite of editors.
+data CompositeEditor =
+  CompositeEditor
+    { _compositeEditorTypedSlots :: !(NonEmpty TypedSlot)
     }
   deriving (Show, Eq)
 
@@ -247,3 +241,69 @@ makeLenses ''State
 makeLenses ''TypedSlot
 makePrisms ''Slot
 makeLenses ''Query
+makeLenses ''ListEditor
+makeLenses ''CompositeEditor
+makePrisms ''Cursor
+makePrisms ''Node
+
+--------------------------------------------------------------------------------
+-- Manual optics
+
+-- | Handy way to traverse the typed slot at the cursor in the state.
+typedSlotTraversalAtCursor :: Traversal' State TypedSlot
+typedSlotTraversalAtCursor = traversalVL visit
+  where
+    visit f (State {_stateCursor, _stateTypedSlot}) =
+      State <$>
+      traverseOf (typedSlotTraversalViaCursor (_stateCursor)) f _stateTypedSlot <*>
+      pure _stateCursor
+
+-- This traversal works on the typed slot at the cursor, if there is
+-- one.
+--
+-- The cursor may be invalid.
+--
+-- We can use @failover'@ instead of @over@ to add a sanity check that
+-- the traversal succeeded or not. Signalling an error if so ("The
+-- cursor appears to be broken..."). A simple procedure like removing
+-- inner layers of the cursor is a simple way to restore order in the
+-- universe.
+typedSlotTraversalViaCursor :: Cursor -> Traversal' TypedSlot TypedSlot
+typedSlotTraversalViaCursor =
+  \case
+    Here -> traversalVL id
+    InList idx cursor ->
+      typedSlotSlot %
+      _FilledSlot %
+      _ListNode %
+      listEditorTypedSlot idx %>
+      typedSlotTraversalViaCursor cursor
+    InComposite idx cursor ->
+      typedSlotSlot %
+      _FilledSlot %
+      _CompositeNode %
+      compositeEditorTypedSlots %
+      element idx %>
+      typedSlotTraversalViaCursor cursor
+
+-- | A list editor doesn't really need to store a [TypedSlot] when a
+-- [Slot Node] will do; the schema never changes per item. Instead, we
+-- just pretend that this is so for the purpose of the traversal.
+--
+-- Attempts to modify the schema name will be ignored silently!
+listEditorTypedSlot :: Int -> IxTraversal' Int ListEditor TypedSlot
+listEditorTypedSlot i = itraversalVL visit
+  where
+    visit f (ListEditor schema typedSlots delim) =
+      ListEditor <$> pure schema <*>
+      itraverse
+        (\j slotNode ->
+           if i == j
+              then fmap
+                     _typedSlotSlot
+                     (f j
+                        (TypedSlot
+                           {_typedSlotSchema = schema, _typedSlotSlot = slotNode}))
+              else pure slotNode)
+        typedSlots <*>
+      pure delim
