@@ -250,12 +250,17 @@ makePrisms ''Node
 -- Manual optics
 
 -- | Handy way to traverse the typed slot at the cursor in the state.
-typedSlotTraversalAtCursor :: Traversal' State TypedSlot
+typedSlotTraversalAtCursor :: Traversal State State TypedSlot (Slot Node)
 typedSlotTraversalAtCursor = traversalVL visit
   where
     visit f (State {_stateCursor, _stateTypedSlot}) =
       State <$>
-      traverseOf (typedSlotTraversalViaCursor (_stateCursor)) f _stateTypedSlot <*>
+      fmap
+        (flip (set typedSlotSlot) _stateTypedSlot)
+        (traverseOf
+           (typedSlotTraversalViaCursor _stateCursor)
+           (f)
+           _stateTypedSlot) <*>
       pure _stateCursor
 
 -- This traversal works on the typed slot at the cursor, if there is
@@ -268,30 +273,27 @@ typedSlotTraversalAtCursor = traversalVL visit
 -- cursor appears to be broken..."). A simple procedure like removing
 -- inner layers of the cursor is a simple way to restore order in the
 -- universe.
-typedSlotTraversalViaCursor :: Cursor -> Traversal' TypedSlot TypedSlot
+typedSlotTraversalViaCursor :: Cursor -> Traversal TypedSlot (Slot Node) TypedSlot (Slot Node)
 typedSlotTraversalViaCursor =
   \case
     Here -> traversalVL id
     InList idx cursor ->
-      typedSlotSlot %
+      typedSlotSlotNode %
       _FilledSlot %
       _ListNode %
       listEditorTypedSlot idx %>
       typedSlotTraversalViaCursor cursor
     InComposite idx cursor ->
-      typedSlotSlot %
+      typedSlotSlotNode %
       _FilledSlot %
       _CompositeNode %
-      compositeEditorTypedSlots %
-      element idx %>
+      compositeEditorTypedSlot idx %>
       typedSlotTraversalViaCursor cursor
 
 -- | A list editor doesn't really need to store a [TypedSlot] when a
 -- [Slot Node] will do; the schema never changes per item. Instead, we
 -- just pretend that this is so for the purpose of the traversal.
---
--- Attempts to modify the schema name will be ignored silently!
-listEditorTypedSlot :: Int -> IxTraversal' Int ListEditor TypedSlot
+listEditorTypedSlot :: Int -> IxTraversal Int ListEditor ListEditor TypedSlot (Slot Node)
 listEditorTypedSlot i = itraversalVL visit
   where
     visit f (ListEditor schema typedSlots delim) =
@@ -299,11 +301,28 @@ listEditorTypedSlot i = itraversalVL visit
       itraverse
         (\j slotNode ->
            if i == j
-              then fmap
-                     _typedSlotSlot
-                     (f j
-                        (TypedSlot
-                           {_typedSlotSchema = schema, _typedSlotSlot = slotNode}))
-              else pure slotNode)
+             then f j
+                    (TypedSlot
+                       {_typedSlotSchema = schema, _typedSlotSlot = slotNode})
+             else pure slotNode)
         typedSlots <*>
       pure delim
+
+-- | A composite editor doesn't really need to store a [TypedSlot] when a
+-- [Slot Node] will do; the schema never changes per item. Instead, we
+-- just pretend that this is so for the purpose of the traversal.
+compositeEditorTypedSlot :: Int -> IxTraversal Int CompositeEditor CompositeEditor TypedSlot (Slot Node)
+compositeEditorTypedSlot i = itraversalVL visit
+  where
+    visit f (CompositeEditor typedSlots) =
+      CompositeEditor <$>
+      itraverse
+        (\j typedSlot ->
+           if i == j
+             then fmap (flip (set typedSlotSlot) typedSlot) (f j typedSlot)
+             else pure typedSlot)
+        typedSlots
+
+-- | A lens that receives schema typed slot, returning just the slot.
+typedSlotSlotNode :: Lens TypedSlot (Slot Node) (Slot Node) (Slot Node)
+typedSlotSlotNode = lens _typedSlotSlot (flip const)

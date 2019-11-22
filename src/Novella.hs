@@ -44,14 +44,14 @@ transformState _config =
     DownCommand -> do
       modify
         (over
-           (typedSlotTraversalAtCursor % typedSlotSlot % _QuerySlot %
+           (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot %
             querySelection)
            succ)
       pure ContinueLoop
     UpCommand -> do
       modify
         (over
-           (typedSlotTraversalAtCursor % typedSlotSlot % _QuerySlot %
+           (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot %
             querySelection)
            pred)
       pure ContinueLoop
