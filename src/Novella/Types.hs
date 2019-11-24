@@ -151,12 +151,6 @@ instance Reparsec.NoMoreInput CommandParseError where
 --------------------------------------------------------------------------------
 -- The UI tree of editors
 
--- | A slot in the tree.
-data Slot a
-  = QuerySlot !Query
-  | FilledSlot !a
-  deriving (Show, Eq, Functor, Traversable, Foldable)
-
 -- | A slot with a type.
 data TypedSlot =
   TypedSlot
@@ -164,6 +158,12 @@ data TypedSlot =
     , _typedSlotSlot :: !(Slot Node)
     }
   deriving (Show, Eq)
+
+-- | A slot in the tree.
+data Slot a
+  = QuerySlot !Query
+  | FilledSlot !a
+  deriving (Show, Eq, Functor, Traversable, Foldable)
 
 -- | A node in the tree.
 data Node
