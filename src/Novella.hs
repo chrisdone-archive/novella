@@ -91,39 +91,6 @@ parseQueryUpdate = do
     _ -> failWith UnknownCommand
 
 --------------------------------------------------------------------------------
--- Matching against schemas
-
-matchChoiceSchema :: Map SchemaName Schema -> NonEmpty SchemaName -> Query -> Seq Match
-matchChoiceSchema rules schemas query =
-  mconcat (fmap (matchShallowSchema rules query) (toList schemas))
-
-matchShallowSchema :: Map SchemaName Schema -> Query -> SchemaName -> Seq Match
-matchShallowSchema rules query schemaName =
-  case M.lookup schemaName rules of
-    Nothing -> mempty
-    Just schema ->
-      if null (_queryText query)
-         then pure (Match schemaName)
-         else case schema of
-                CompositeSchema schemas ->
-                  if any (not . Seq.null . matchAtomicSchema rules query) schemas
-                    then pure (Match schemaName)
-                    else mempty
-                _ -> matchAtomicSchema rules query schemaName
-
-matchAtomicSchema :: Map SchemaName Schema -> Query -> SchemaName -> Seq Match
-matchAtomicSchema rules (Query {_queryText = text}) schemaName =
-  case M.lookup schemaName rules of
-    Nothing -> mempty
-    Just schema ->
-      case schema of
-        KeywordSchema (Keyword kw) ->
-          if isInfixOf text kw
-            then pure (Match schemaName)
-            else mempty
-        _ -> mempty
-
---------------------------------------------------------------------------------
 -- State transformer of commands
 
 -- | Transform the state given the config and the command.
@@ -171,3 +138,36 @@ transformStateQuery config cmd =
                 queryMatches
                 (matchShallowSchema (configSchema config) query schemaName)
                 query
+
+--------------------------------------------------------------------------------
+-- Matching against schemas
+
+matchChoiceSchema :: Map SchemaName Schema -> NonEmpty SchemaName -> Query -> Seq Match
+matchChoiceSchema rules schemas query =
+  mconcat (fmap (matchShallowSchema rules query) (toList schemas))
+
+matchShallowSchema :: Map SchemaName Schema -> Query -> SchemaName -> Seq Match
+matchShallowSchema rules query schemaName =
+  case M.lookup schemaName rules of
+    Nothing -> mempty
+    Just schema ->
+      if null (_queryText query)
+         then pure (Match schemaName)
+         else case schema of
+                CompositeSchema schemas ->
+                  if any (not . Seq.null . matchAtomicSchema rules query) schemas
+                    then pure (Match schemaName)
+                    else mempty
+                _ -> matchAtomicSchema rules query schemaName
+
+matchAtomicSchema :: Map SchemaName Schema -> Query -> SchemaName -> Seq Match
+matchAtomicSchema rules (Query {_queryText = text}) schemaName =
+  case M.lookup schemaName rules of
+    Nothing -> mempty
+    Just schema ->
+      case schema of
+        KeywordSchema (Keyword kw) ->
+          if isInfixOf text kw
+            then pure (Match schemaName)
+            else mempty
+        _ -> mempty
