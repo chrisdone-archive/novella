@@ -23,6 +23,9 @@ import           Novella.Types.Optics
 import           Optics
 import           RIO (glog)
 
+--------------------------------------------------------------------------------
+-- Low-level command parser
+
 -- | Produce a stream of commands from a stream of inputs.
 commandConduit ::
      MonadIO m
@@ -38,6 +41,9 @@ commandParser = quit <> ctrlc <> downSelect <> upSelect <> parserFromState
         ctrlc = CtrlCCommand <$ Reparsec.expect CtrlInput <* Reparsec.expect (CharInput 'c')
         downSelect = DownCommand <$ Reparsec.expect DownInput
         upSelect = UpCommand <$ Reparsec.expect UpInput
+
+--------------------------------------------------------------------------------
+-- Command parser based on current node's schema
 
 -- | Parse commands based on the current selected node.
 parserFromState ::
@@ -56,6 +62,9 @@ parserFromState = do
     Just typedSlot -> do
       lift (glog (CommandParserMsg (ParsingForSlot typedSlot)))
       failWith NoNodeMatches
+
+--------------------------------------------------------------------------------
+-- State transformer of commands
 
 -- | Transform the state given the config and the command.
 transformState :: Monad m => Config -> Command -> StateT State m Loop
