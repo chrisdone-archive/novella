@@ -146,7 +146,14 @@ data Command
   = QuitCommand
   | EXITCommand
   | CtrlCCommand
-  | UpdateQuery Query
+  | QueryCommand QueryCommand
+  deriving (Show, Eq)
+
+data QueryCommand
+  = SelectUpQuery
+  | SelectDownQuery
+  | AddCharQuery Char
+  | DeleteCharQuery
   deriving (Show, Eq)
 
 -- | A match of a query to a schema name.

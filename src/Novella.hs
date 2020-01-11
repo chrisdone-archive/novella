@@ -68,35 +68,26 @@ parserFromState config = do
       lift (glog (CommandParserMsg (ParsingForSlot typedSlot)))
       case _typedSlotSlot typedSlot of
         FilledSlot {} -> failWith NoActionForFilledSlot
-        QuerySlot query ->
+        QuerySlot {} ->
           case M.lookup schemaName (configSchema config) of
             Nothing -> failWith (NoSuchSchemaToQuery schemaName)
             Just schema -> do
               lift (glog (CommandParserMsg (FoundSchema schema)))
-              case schema of
-                KeywordSchema keyword ->
-                  failWith (QueryingKeywordSchema keyword)
-                ChoiceSchema schemaNames ->
-                  parseQueryUpdate query (matchChoiceSchema (configSchema config) schemaNames)
-                _ -> failWith NoNodeMatches
+              fmap QueryCommand parseQueryUpdate
       where schemaName = _typedSlotSchema typedSlot
 
 -- | Parse keys upon the current query, producing a command.
 parseQueryUpdate ::
      Monad m
-  => Query
-  -> (Query -> Seq Match)
-  -> ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-parseQueryUpdate query matches = do
+  => ParserT (Seq Input) CommandParseError (ReaderT State m) QueryCommand
+parseQueryUpdate = do
   input <- Reparsec.nextElement
-  query' <-
-    case input of
-      CharInput ch -> pure (over queryText (<> [ch]) query)
-      UpInput -> pure (over querySelection pred query)
-      DownInput -> pure (over querySelection succ query)
-      BackspaceInput -> pure (over queryText (reverse . drop 1 . reverse) query)
-      _ -> failWith UnknownCommand
-  pure (UpdateQuery (query' {_queryMatches = matches query'}))
+  case input of
+    CharInput ch -> pure (AddCharQuery ch)
+    UpInput -> pure SelectUpQuery
+    DownInput -> pure SelectDownQuery
+    BackspaceInput -> pure DeleteCharQuery
+    _ -> failWith UnknownCommand
 
 --------------------------------------------------------------------------------
 -- Matching against schemas
@@ -136,12 +127,46 @@ matchAtomicSchema rules (Query {_queryText = text}) schemaName =
 
 -- | Transform the state given the config and the command.
 transformState :: Monad m => Config -> Command -> StateT State m Loop
-transformState _config =
+transformState config =
   \case
     QuitCommand -> pure ExitLoop
     EXITCommand -> pure ExitLoop
     CtrlCCommand -> pure ExitLoop
-    UpdateQuery query -> do
-      modify
-        (set (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot) query)
+    QueryCommand cmd -> do
+      transformStateQuery config cmd
       pure ContinueLoop
+
+-- | Transform the state given the query command.
+transformStateQuery :: Monad m => Config -> QueryCommand -> StateT State m ()
+transformStateQuery config cmd =
+  modify
+    (over
+       (typedSlotTraversalAtCursor)
+       (\typedSlot ->
+          over
+            (typedSlotSlotNode % _QuerySlot)
+            (updateMatches (_typedSlotSchema typedSlot) . applyCommand)
+            typedSlot))
+  where
+    applyCommand query =
+      case cmd of
+        AddCharQuery ch -> over queryText (<> [ch]) query
+        SelectUpQuery -> over querySelection pred query
+        SelectDownQuery -> over querySelection succ query
+        DeleteCharQuery -> over queryText (reverse . drop 1 . reverse) query
+    updateMatches schemaName query =
+      case M.lookup schemaName (configSchema config) of
+        Nothing -> query
+        Just schema ->
+          case schema of
+            KeywordSchema {} -> query
+            ChoiceSchema schemaNames ->
+              set
+                queryMatches
+                (matchChoiceSchema (configSchema config) schemaNames query)
+                query
+            _ ->
+              set
+                queryMatches
+                (matchShallowSchema (configSchema config) query schemaName)
+                query
