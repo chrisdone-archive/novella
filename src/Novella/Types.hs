@@ -146,9 +146,7 @@ data Command
   = QuitCommand
   | EXITCommand
   | CtrlCCommand
-  | DownCommand
-  | UpCommand
-  | SetMatches (Seq Match)
+  | UpdateQuery Query
   deriving (Show, Eq)
 
 -- | A match of a query to a schema name.
@@ -166,6 +164,7 @@ data CommandParseError
   | NoSuchSchemaToQuery SchemaName
   | NoActionForFilledSlot
   | QueryingKeywordSchema Keyword
+  | UnknownCommand
   deriving (Show)
 
 instance Semigroup CommandParseError where

@@ -15,7 +15,9 @@ import           Control.Monad.Trans.State.Strict (modify, StateT)
 import           Control.Monad.Writer
 import           Data.Conduit
 import           Data.Foldable
+import           Data.List
 import           Data.List.NonEmpty (NonEmpty(..))
+import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Data.Reparsec (failWith, ParserT)
@@ -39,12 +41,9 @@ commandConduit config = Reparsec.parseConduit (commandParser config)
 -- | Produce a command from a stream of inputs.
 commandParser ::
      MonadIO m => Config -> ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-commandParser config = quit <> ctrlc <> downSelect <> upSelect <> parserFromState config
+commandParser config = quit <> ctrlc <> parserFromState config
   where quit = QuitCommand <$ Reparsec.expect EscInput
-        -- exit = EXITCommand <$ traverse (Reparsec.expect . CharInput) "exit"
         ctrlc = CtrlCCommand <$ Reparsec.expect CtrlInput <* Reparsec.expect (CharInput 'c')
-        downSelect = DownCommand <$ Reparsec.expect DownInput
-        upSelect = UpCommand <$ Reparsec.expect UpInput
 
 --------------------------------------------------------------------------------
 -- Command parser based on current node's schema
@@ -78,15 +77,59 @@ parserFromState config = do
                 KeywordSchema keyword ->
                   failWith (QueryingKeywordSchema keyword)
                 ChoiceSchema schemaNames ->
-                  pure (SetMatches (matchChoiceSchema schemaNames query))
+                  parseQueryUpdate query (matchChoiceSchema (configSchema config) schemaNames)
                 _ -> failWith NoNodeMatches
       where schemaName = _typedSlotSchema typedSlot
+
+-- | Parse keys upon the current query, producing a command.
+parseQueryUpdate ::
+     Monad m
+  => Query
+  -> (Query -> Seq Match)
+  -> ParserT (Seq Input) CommandParseError (ReaderT State m) Command
+parseQueryUpdate query matches = do
+  input <- Reparsec.nextElement
+  query' <-
+    case input of
+      CharInput ch -> pure (over queryText (<> [ch]) query)
+      UpInput -> pure (over querySelection pred query)
+      DownInput -> pure (over querySelection succ query)
+      BackspaceInput -> pure (over queryText (reverse . drop 1 . reverse) query)
+      _ -> failWith UnknownCommand
+  pure (UpdateQuery (query' {_queryMatches = matches query'}))
 
 --------------------------------------------------------------------------------
 -- Matching against schemas
 
-matchChoiceSchema :: NonEmpty SchemaName -> Query -> Seq Match
-matchChoiceSchema schemas _query = fmap Match (Seq.fromList (toList schemas))
+matchChoiceSchema :: Map SchemaName Schema -> NonEmpty SchemaName -> Query -> Seq Match
+matchChoiceSchema rules schemas query =
+  mconcat (fmap (matchShallowSchema rules query) (toList schemas))
+
+matchShallowSchema :: Map SchemaName Schema -> Query -> SchemaName -> Seq Match
+matchShallowSchema rules query schemaName =
+  case M.lookup schemaName rules of
+    Nothing -> mempty
+    Just schema ->
+      if null (_queryText query)
+         then pure (Match schemaName)
+         else case schema of
+                CompositeSchema schemas ->
+                  if any (not . Seq.null . matchAtomicSchema rules query) schemas
+                    then pure (Match schemaName)
+                    else mempty
+                _ -> matchAtomicSchema rules query schemaName
+
+matchAtomicSchema :: Map SchemaName Schema -> Query -> SchemaName -> Seq Match
+matchAtomicSchema rules (Query {_queryText = text}) schemaName =
+  case M.lookup schemaName rules of
+    Nothing -> mempty
+    Just schema ->
+      case schema of
+        KeywordSchema (Keyword kw) ->
+          if isInfixOf text kw
+            then pure (Match schemaName)
+            else mempty
+        _ -> mempty
 
 --------------------------------------------------------------------------------
 -- State transformer of commands
@@ -98,24 +141,7 @@ transformState _config =
     QuitCommand -> pure ExitLoop
     EXITCommand -> pure ExitLoop
     CtrlCCommand -> pure ExitLoop
-    DownCommand -> do
+    UpdateQuery query -> do
       modify
-        (over
-           (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot %
-            querySelection)
-           succ)
-      pure ContinueLoop
-    UpCommand -> do
-      modify
-        (over
-           (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot %
-            querySelection)
-           pred)
-      pure ContinueLoop
-    SetMatches matches -> do
-      modify
-        (set
-           (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot %
-            queryMatches)
-           matches)
+        (set (typedSlotTraversalAtCursor % typedSlotSlotNode % _QuerySlot) query)
       pure ContinueLoop
