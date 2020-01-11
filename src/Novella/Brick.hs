@@ -88,7 +88,7 @@ drawQuery schemas schemaName (Query string selection) =
     Nothing -> [Brick.str "INVALID SCHEMA NAME!"]
     Just schema ->
       [ Brick.vBox
-          [ Brick.str string
+          [ Brick.border (Brick.str string)
           , drawChoiceList selection (drawSchemaDeep schemas schema)
           ]
       ]

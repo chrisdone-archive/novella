@@ -9,10 +9,13 @@ module Novella
   , transformState
   ) where
 
-import           Control.Monad.Trans.Reader (ReaderT)
+import           Control.Monad.Trans
+import           Control.Monad.Trans.Reader (ask, ReaderT)
 import           Control.Monad.Trans.State.Strict (modify, StateT)
+import           Control.Monad.Writer
 import           Data.Conduit
-import           Data.Reparsec (ParserT)
+import           Data.Maybe
+import           Data.Reparsec (failWith, ParserT)
 import qualified Data.Reparsec.Sequence as Reparsec
 import           Data.Sequence (Seq)
 import           Novella.Types
@@ -27,12 +30,28 @@ commandConduit = Reparsec.parseConduit commandParser
 -- | Produce a command from a stream of inputs.
 commandParser ::
      Monad m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-commandParser = quit <> exit <> ctrlc <> downSelect <> upSelect
+commandParser = quit <> ctrlc <> downSelect <> upSelect <> parserFromState
   where quit = QuitCommand <$ Reparsec.expect EscInput
-        exit = EXITCommand <$ traverse (Reparsec.expect . CharInput) "exit"
+        -- exit = EXITCommand <$ traverse (Reparsec.expect . CharInput) "exit"
         ctrlc = CtrlCCommand <$ Reparsec.expect CtrlInput <* Reparsec.expect (CharInput 'c')
         downSelect = DownCommand <$ Reparsec.expect DownInput
         upSelect = UpCommand <$ Reparsec.expect UpInput
+
+-- | Parse commands based on the current selected node.
+parserFromState ::
+     Monad m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
+parserFromState = do
+  state <- lift ask
+  case listToMaybe
+         (execWriter
+            (traverseOf
+               typedSlotTraversalAtCursor
+               (\x -> do
+                  tell [x]
+                  pure (_typedSlotSlot x))
+               state)) of
+    Nothing -> failWith NoCurrentFocusedNode
+    Just _typedSlot -> failWith NoNodeMatches
 
 -- | Transform the state given the config and the command.
 transformState :: Monad m => Config -> Command -> StateT State m Loop

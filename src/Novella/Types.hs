@@ -139,6 +139,8 @@ data CommandParseError
   = ExpectedButGot Input Input
   | NoMoreInput
   | ManyProblems (NonEmpty (CommandParseError))
+  | NoCurrentFocusedNode
+  | NoNodeMatches
   deriving (Show)
 
 instance Semigroup CommandParseError where
