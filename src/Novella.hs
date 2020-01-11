@@ -1,4 +1,3 @@
-{-# LANGUAGE Strict #-}
 {-# LANGUAGE LambdaCase #-}
 
 -- | The Novella structured editor.
@@ -14,7 +13,6 @@ import           Control.Monad.Trans.Reader (ask, ReaderT)
 import           Control.Monad.Trans.State.Strict (modify, StateT)
 import           Control.Monad.Writer
 import           Data.Conduit
-import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Data.Reparsec (failWith, ParserT)
@@ -67,7 +65,9 @@ parserFromState config = do
       lift (glog (CommandParserMsg (ParsingForSlot typedSlot)))
       case M.lookup schemaName (configSchema config) of
         Nothing -> failWith (NoSuchSchemaToQuery schemaName)
-        Just {} -> failWith NoNodeMatches
+        Just schema -> do
+          lift (glog (CommandParserMsg (FoundSchema schema)))
+          failWith NoNodeMatches
       where schemaName = _typedSlotSchema typedSlot
 
 --------------------------------------------------------------------------------

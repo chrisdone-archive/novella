@@ -105,6 +105,7 @@ data NovellaMsg =
 -- | A log message for a command parser.
 data CommandParserMsg =
   ParsingForSlot TypedSlot
+  | FoundSchema Schema
   deriving (Show)
 
 -- | A flag to indicate what to do after transforming the state.
