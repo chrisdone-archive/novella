@@ -64,8 +64,7 @@ typedSlotTraversalViaCursor =
       typedSlotTraversalViaCursor cursor
 
 -- | A list editor doesn't really need to store a [TypedSlot] when a
--- [Slot Node] will do; the schema never changes per item. Instead, we
--- just pretend that this is so for the purpose of the traversal.
+-- [Slot Node] will do; the schema never changes per item.
 listEditorTypedSlot :: Int -> IxTraversal Int ListEditor ListEditor TypedSlot (Slot Node)
 listEditorTypedSlot i = itraversalVL visit
   where
@@ -82,8 +81,7 @@ listEditorTypedSlot i = itraversalVL visit
       pure delim
 
 -- | A composite editor doesn't really need to store a [TypedSlot] when a
--- [Slot Node] will do; the schema never changes per item. Instead, we
--- just pretend that this is so for the purpose of the traversal.
+-- [Slot Node] will do; the schema never changes per item.
 compositeEditorTypedSlot :: Int -> IxTraversal Int CompositeEditor CompositeEditor TypedSlot (Slot Node)
 compositeEditorTypedSlot i = itraversalVL visit
   where
