@@ -10,7 +10,8 @@ module Novella.Brick where
 
 import qualified Brick
 import qualified Brick.Widgets.Border as Brick
-import           Control.Monad.State.Strict (liftIO, runState)
+import           Control.Monad.State.Strict (runState)
+import           Control.Monad.Trans
 import           Control.Monad.Trans.Reader
 import           Data.Foldable
 import           Data.List
@@ -25,7 +26,6 @@ import           Data.Validation
 import qualified Graphics.Vty as Vty
 import           Novella
 import           Novella.Types
-import           Optics
 import           RIO
 
 --------------------------------------------------------------------------------
@@ -34,23 +34,27 @@ import           RIO
 data BrickState = BrickState
   { state :: State
   , partial :: Maybe (Maybe (Seq Input) -> Reader State (Result (Reader State) (Seq Input) CommandParseError Command))
-  , logFunc :: GLogFunc BrickMsg
   }
 
-data BrickMsg = BrickMsg
+data BrickMsg
+  = BadModifierkeys (NonEmpty Vty.Modifier)
+  | BadKey Vty.Key
+  | ExitCommandGiven
+  | KeyConsumeFailure CommandParseError
+  | ParsedCommand Command
+  | WaitingForMoreKeys
   deriving (Show)
-
-$(makeLensesFor [("logFunc","logFuncL")] 'BrickState)
 
 --------------------------------------------------------------------------------
 -- Brick app
 
-app :: Config -> Brick.App BrickState () ()
-app config =
+app :: GLogFunc BrickMsg -> Config -> Brick.App BrickState () ()
+app glogFunc config =
   Brick.App
     { appDraw = drawBrickState config
     , appChooseCursor = \_state [] -> Nothing
-    , appHandleEvent = handleEvent config
+    , appHandleEvent =
+        \state event -> runReaderT (handleEvent config state event) glogFunc
     , appStartEvent = pure
     , appAttrMap =
         const
@@ -169,13 +173,12 @@ handleEvent ::
      Config
   -> BrickState
   -> Brick.BrickEvent () ()
-  -> Brick.EventM () (Brick.Next BrickState)
+  -> ReaderT (GLogFunc BrickMsg) (Brick.EventM ()) (Brick.Next BrickState)
 handleEvent config brickState event = do
-  liftIO (pure ())
   case event of
     Brick.VtyEvent (Vty.EvKey key modifiers) ->
       handleEvKey config brickState key modifiers
-    _ -> Brick.continue brickState
+    _ -> lift (Brick.continue brickState)
 
 -- | Handle incoming keys.
 handleEvKey ::
@@ -183,13 +186,17 @@ handleEvKey ::
   -> BrickState
   -> Vty.Key
   -> [Vty.Modifier]
-  -> Brick.EventM n (Brick.Next BrickState)
+  -> ReaderT (GLogFunc BrickMsg) (Brick.EventM ()) (Brick.Next BrickState)
 handleEvKey config brickState@BrickState {state, partial} key modifiers =
   case traverse modifierToInput (Seq.fromList modifiers) of
-    Failure _badModifiers -> Brick.continue brickState -- TODO: display bad keys.
+    Failure badModifiers -> do
+      glog (BadModifierkeys badModifiers)
+      lift (Brick.continue brickState)
     Success modifierInputs ->
       case keyToInput key of
-        Left _badKey -> Brick.continue brickState -- TODO: display problem.
+        Left badKey -> do
+          glog (BadKey badKey)
+          lift (Brick.continue brickState)
         Right keyInput ->
           case runReader
                  (fromMaybe
@@ -197,15 +204,20 @@ handleEvKey config brickState@BrickState {state, partial} key modifiers =
                     partial
                     (pure (modifierInputs <> pure keyInput)))
                  state of
-            Done _inputsConsumed _position _more command ->
+            Done _inputsConsumed _position _more command -> do
+              glog (ParsedCommand command)
               case runState (transformState config command) state of
-                (ExitLoop, state') -> Brick.halt (brickState {state = state'})
+                (ExitLoop, state') -> do
+                  glog ExitCommandGiven
+                  lift (Brick.halt (brickState {state = state'}))
                 (ContinueLoop, state') ->
-                  Brick.continue (brickState {state = state'})
-            Failed _inputsConsumed _position _more _reason ->
-              Brick.continue brickState {partial = Nothing} -- TODO: display reason.
-            Partial cont ->
-              Brick.continue brickState {partial = pure cont} -- TODO: display problem.
+                  lift (Brick.continue (brickState {state = state'}))
+            Failed _inputsConsumed _position _more reason -> do
+              glog (KeyConsumeFailure reason)
+              lift (Brick.continue brickState {partial = Nothing})
+            Partial cont -> do
+              glog WaitingForMoreKeys
+              lift (Brick.continue brickState {partial = pure cont})
 
 -- | Convert a Vty modifier to a regular Novella input.
 modifierToInput :: Vty.Modifier -> Validation (NonEmpty Vty.Modifier) Input

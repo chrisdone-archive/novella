@@ -132,12 +132,14 @@ data Command
   | CtrlCCommand
   | DownCommand
   | UpCommand
+  deriving (Show, Eq)
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
   = ExpectedButGot Input Input
   | NoMoreInput
   | ManyProblems (NonEmpty (CommandParseError))
+  deriving (Show)
 
 instance Semigroup CommandParseError where
   (<>) x y = ManyProblems (pure x <> pure y)
