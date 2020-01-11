@@ -18,6 +18,7 @@ module Novella.Types where
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map.Strict (Map)
 import qualified Data.Reparsec as Reparsec
+import           Data.Sequence (Seq)
 import           Data.String
 import           Instances.TH.Lift ()
 import           Language.Haskell.TH.Lift (Lift)
@@ -147,16 +148,24 @@ data Command
   | CtrlCCommand
   | DownCommand
   | UpCommand
+  | SetMatches (Seq Match)
+  deriving (Show, Eq)
+
+-- | A match of a query to a schema name.
+data Match =
+  Match SchemaName
   deriving (Show, Eq)
 
 -- | An error resulting from trying to parse inputs into a command.
 data CommandParseError
   = ExpectedButGot Input Input
   | NoMoreInput
-  | ManyProblems (NonEmpty (CommandParseError))
+  | ManyProblems (NonEmpty CommandParseError)
   | NoCurrentFocusedNode
   | NoNodeMatches
   | NoSuchSchemaToQuery SchemaName
+  | NoActionForFilledSlot
+  | QueryingKeywordSchema Keyword
   deriving (Show)
 
 instance Semigroup CommandParseError where
@@ -252,4 +261,5 @@ newtype Identifier =
 data Query = Query
   { _queryText :: String
   , _querySelection :: Int
-  } deriving (Show, Eq, Ord)
+  , _queryMatches :: Seq Match
+  } deriving (Show, Eq)

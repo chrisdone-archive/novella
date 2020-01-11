@@ -37,7 +37,12 @@ main =
         { _stateTypedSlot =
             TypedSlot
               { _typedSlotSlot =
-                  QuerySlot (Query {_queryText = "", _querySelection = 0})
+                  QuerySlot
+                    (Query
+                       { _queryMatches = mempty
+                       , _queryText = ""
+                       , _querySelection = 0
+                       })
               , _typedSlotSchema = "Expression"
               }
         , _stateCursor = Here

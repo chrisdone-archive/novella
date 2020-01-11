@@ -84,13 +84,15 @@ drawNode =
     _ -> [Brick.str "TODO: drawNode"]
 
 drawQuery :: Map SchemaName Schema -> SchemaName -> Query -> [Brick.Widget ()]
-drawQuery schemas schemaName (Query string selection) =
+drawQuery schemas schemaName (Query string selection matches) =
   case M.lookup schemaName schemas of
     Nothing -> [Brick.str "INVALID SCHEMA NAME!"]
-    Just schema ->
+    Just _schema ->
       [ Brick.vBox
           [ Brick.border (Brick.str string)
-          , drawChoiceList selection (drawSchemaDeep schemas schema)
+          , drawChoiceList
+              selection
+              (map (\(Match s) -> drawSchemaShallow schemas s) (toList matches))
           ]
       ]
 
