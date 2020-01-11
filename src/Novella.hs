@@ -19,17 +19,19 @@ import           Data.Reparsec (failWith, ParserT)
 import qualified Data.Reparsec.Sequence as Reparsec
 import           Data.Sequence (Seq)
 import           Novella.Types
+import           Novella.Types.Optics
 import           Optics
+import           RIO (glog)
 
 -- | Produce a stream of commands from a stream of inputs.
 commandConduit ::
-     Monad m
+     MonadIO m
   => ConduitT Input (Either CommandParseError Command) (ReaderT State m) ()
 commandConduit = Reparsec.parseConduit commandParser
 
 -- | Produce a command from a stream of inputs.
 commandParser ::
-     Monad m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
+     MonadIO m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
 commandParser = quit <> ctrlc <> downSelect <> upSelect <> parserFromState
   where quit = QuitCommand <$ Reparsec.expect EscInput
         -- exit = EXITCommand <$ traverse (Reparsec.expect . CharInput) "exit"
@@ -39,7 +41,7 @@ commandParser = quit <> ctrlc <> downSelect <> upSelect <> parserFromState
 
 -- | Parse commands based on the current selected node.
 parserFromState ::
-     Monad m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
+     MonadIO m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
 parserFromState = do
   state <- lift ask
   case listToMaybe
@@ -51,7 +53,9 @@ parserFromState = do
                   pure (_typedSlotSlot x))
                state)) of
     Nothing -> failWith NoCurrentFocusedNode
-    Just _typedSlot -> failWith NoNodeMatches
+    Just typedSlot -> do
+      lift (glog (CommandParserMsg (ParsingForSlot typedSlot)))
+      failWith NoNodeMatches
 
 -- | Transform the state given the config and the command.
 transformState :: Monad m => Config -> Command -> StateT State m Loop

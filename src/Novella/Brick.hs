@@ -33,7 +33,7 @@ import           RIO
 
 data BrickState = BrickState
   { state :: State
-  , partial :: Maybe (Maybe (Seq Input) -> Reader State (Result (Reader State) (Seq Input) CommandParseError Command))
+  , partial :: Maybe (Maybe (Seq Input) -> ReaderT State (ReaderT (GLogFunc BrickMsg) (Brick.EventM ())) (Result (ReaderT State (ReaderT (GLogFunc BrickMsg) (Brick.EventM ()))) (Seq Input) CommandParseError Command))
   }
 
 data BrickMsg
@@ -43,6 +43,7 @@ data BrickMsg
   | KeyConsumeFailure CommandParseError
   | ParsedCommand Command
   | WaitingForMoreKeys
+  | NovellaMsg NovellaMsg
   deriving (Show)
 
 --------------------------------------------------------------------------------
@@ -197,13 +198,15 @@ handleEvKey config brickState@BrickState {state, partial} key modifiers =
         Left badKey -> do
           glog (BadKey badKey)
           lift (Brick.continue brickState)
-        Right keyInput ->
-          case runReader
-                 (fromMaybe
-                    (parseResultT commandParser)
-                    partial
-                    (pure (modifierInputs <> pure keyInput)))
-                 state of
+        Right keyInput -> do
+          result <-
+            runReaderT
+              (fromMaybe
+                 (parseResultT commandParser)
+                 partial
+                 (pure (modifierInputs <> pure keyInput)))
+              state
+          case result of
             Done _inputsConsumed _position _more command -> do
               glog (ParsedCommand command)
               case runState (transformState config command) state of

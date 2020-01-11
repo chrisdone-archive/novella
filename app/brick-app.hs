@@ -8,6 +8,7 @@ module Main where
 import           Brick
 import qualified Data.ByteString.Char8 as S8
 import           Data.Functor
+import           Data.Functor.Contravariant
 import           Data.Time
 import           Novella.Brick
 import qualified Novella.Languages.Haskell as Haskell
@@ -21,16 +22,17 @@ main =
     AppendMode
     (\h -> do
        hSetBuffering h LineBuffering
-       void (defaultMain (app (glogfunc h) config) brickState))
+       void (defaultMain (app (glogfunc h) config) (brickState h)))
   where
+    glogfunc :: Handle -> GLogFunc BrickMsg
     glogfunc h =
       mkGLogFunc
         (\_cs c -> do
            now <- getCurrentTime
            S8.hPutStrLn h (fromString (show now ++ ": " ++ show c)))
     config = Config {configSchema = grammarRules Haskell.grammar}
-    brickState = BrickState {state, partial = Nothing}
-    state =
+    brickState h = BrickState {state = state h, partial = Nothing}
+    state h =
       State
         { _stateTypedSlot =
             TypedSlot
@@ -39,4 +41,5 @@ main =
               , _typedSlotSchema = "Expression"
               }
         , _stateCursor = Here
+        , _stateLogFunc = contramap NovellaMsg (glogfunc h)
         }
