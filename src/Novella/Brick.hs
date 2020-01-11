@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
@@ -9,7 +10,7 @@ module Novella.Brick where
 
 import qualified Brick
 import qualified Brick.Widgets.Border as Brick
-import           Control.Monad.State.Strict (runState)
+import           Control.Monad.State.Strict (liftIO, runState)
 import           Control.Monad.Trans.Reader
 import           Data.Foldable
 import           Data.List
@@ -24,6 +25,8 @@ import           Data.Validation
 import qualified Graphics.Vty as Vty
 import           Novella
 import           Novella.Types
+import           Optics
+import           RIO
 
 --------------------------------------------------------------------------------
 -- Brick-specific types
@@ -31,7 +34,13 @@ import           Novella.Types
 data BrickState = BrickState
   { state :: State
   , partial :: Maybe (Maybe (Seq Input) -> Reader State (Result (Reader State) (Seq Input) CommandParseError Command))
+  , logFunc :: GLogFunc BrickMsg
   }
+
+data BrickMsg = BrickMsg
+  deriving (Show)
+
+$(makeLensesFor [("logFunc","logFuncL")] 'BrickState)
 
 --------------------------------------------------------------------------------
 -- Brick app
@@ -161,7 +170,8 @@ handleEvent ::
   -> BrickState
   -> Brick.BrickEvent () ()
   -> Brick.EventM () (Brick.Next BrickState)
-handleEvent config brickState event =
+handleEvent config brickState event = do
+  liftIO (pure ())
   case event of
     Brick.VtyEvent (Vty.EvKey key modifiers) ->
       handleEvKey config brickState key modifiers

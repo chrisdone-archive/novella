@@ -52,6 +52,7 @@ library
     , optics-th
 
     -- Needed for Brick UI
+    , rio
     , vty
     , brick
     , validation
@@ -74,4 +75,5 @@ executable novella-brick
     , transformers
     , brick
     , vty
+    , rio
   default-language: Haskell2010

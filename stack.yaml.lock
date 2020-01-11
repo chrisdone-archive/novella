@@ -18,6 +18,32 @@ packages:
     subdir: reparsec
     url: https://github.com/chrisdone/streaming-parsers/archive/302ecfc3561eafff1b296e7d681366217f94847a.tar.gz
 - completed:
+    size: 62828
+    subdir: rio
+    url: https://github.com/chrisdone/rio/archive/271e198c8aa52f04f8cf7c79eaa13f2ec95aac78.tar.gz
+    name: rio
+    version: 0.1.12.0
+    sha256: 0659775cfe81be89b706bc201dcbfa54fe60b907e07cd4ab2b9990caf10f1c4c
+    pantry-tree:
+      size: 4749
+      sha256: d3ae9daf02ab30ec05b8ca83a17e23f463f2269692f2bf2d72484bb8c780f2c3
+  original:
+    subdir: rio
+    url: https://github.com/chrisdone/rio/archive/271e198c8aa52f04f8cf7c79eaa13f2ec95aac78.tar.gz
+- completed:
+    size: 62828
+    subdir: rio-orphans
+    url: https://github.com/chrisdone/rio/archive/271e198c8aa52f04f8cf7c79eaa13f2ec95aac78.tar.gz
+    name: rio-orphans
+    version: 0.1.1.0
+    sha256: 0659775cfe81be89b706bc201dcbfa54fe60b907e07cd4ab2b9990caf10f1c4c
+    pantry-tree:
+      size: 422
+      sha256: 3f22c077f5c7eff4409bd38885ccedfe27d646140f8f0b945c42f4106d2ffbfc
+  original:
+    subdir: rio-orphans
+    url: https://github.com/chrisdone/rio/archive/271e198c8aa52f04f8cf7c79eaa13f2ec95aac78.tar.gz
+- completed:
     hackage: optics-0.2@sha256:813ef6cc4d2e2b5ee00435831031f38917ba01d1e56dcb62dc18cd0315a9ccb7,6296
     pantry-tree:
       size: 1003
