@@ -81,6 +81,7 @@ parseQueryUpdate ::
      Monad m
   => ParserT (Seq Input) CommandParseError (ReaderT State m) QueryCommand
 parseQueryUpdate = do
+  -- Could re-arrange this to make use of <> more.
   input <- Reparsec.nextElement
   case input of
     CharInput ch -> pure (AddCharQuery ch)
