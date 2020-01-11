@@ -29,7 +29,7 @@ main =
       mkGLogFunc
         (\_cs c -> do
            now <- getCurrentTime
-           S8.hPutStrLn h (fromString (show now ++ ": " ++ show c)))
+           S8.hPutStrLn h (fromString (show (show now) ++ ": " ++ show c)))
     config = Config {configSchema = grammarRules Haskell.grammar}
     brickState h = BrickState {state = state h, partial = Nothing}
     state h =
