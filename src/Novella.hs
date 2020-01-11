@@ -14,6 +14,8 @@ import           Control.Monad.Trans.Reader (ask, ReaderT)
 import           Control.Monad.Trans.State.Strict (modify, StateT)
 import           Control.Monad.Writer
 import           Data.Conduit
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 import           Data.Maybe
 import           Data.Reparsec (failWith, ParserT)
 import qualified Data.Reparsec.Sequence as Reparsec
@@ -29,13 +31,13 @@ import           RIO (glog)
 -- | Produce a stream of commands from a stream of inputs.
 commandConduit ::
      MonadIO m
-  => ConduitT Input (Either CommandParseError Command) (ReaderT State m) ()
-commandConduit = Reparsec.parseConduit commandParser
+  => Config -> ConduitT Input (Either CommandParseError Command) (ReaderT State m) ()
+commandConduit config = Reparsec.parseConduit (commandParser config)
 
 -- | Produce a command from a stream of inputs.
 commandParser ::
-     MonadIO m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-commandParser = quit <> ctrlc <> downSelect <> upSelect <> parserFromState
+     MonadIO m => Config -> ParserT (Seq Input) CommandParseError (ReaderT State m) Command
+commandParser config = quit <> ctrlc <> downSelect <> upSelect <> parserFromState config
   where quit = QuitCommand <$ Reparsec.expect EscInput
         -- exit = EXITCommand <$ traverse (Reparsec.expect . CharInput) "exit"
         ctrlc = CtrlCCommand <$ Reparsec.expect CtrlInput <* Reparsec.expect (CharInput 'c')
@@ -47,8 +49,10 @@ commandParser = quit <> ctrlc <> downSelect <> upSelect <> parserFromState
 
 -- | Parse commands based on the current selected node.
 parserFromState ::
-     MonadIO m => ParserT (Seq Input) CommandParseError (ReaderT State m) Command
-parserFromState = do
+     MonadIO m
+  => Config
+  -> ParserT (Seq Input) CommandParseError (ReaderT State m) Command
+parserFromState config = do
   state <- lift ask
   case listToMaybe
          (execWriter
@@ -61,7 +65,10 @@ parserFromState = do
     Nothing -> failWith NoCurrentFocusedNode
     Just typedSlot -> do
       lift (glog (CommandParserMsg (ParsingForSlot typedSlot)))
-      failWith NoNodeMatches
+      case M.lookup schemaName (configSchema config) of
+        Nothing -> failWith (NoSuchSchemaToQuery schemaName)
+        Just {} -> failWith NoNodeMatches
+      where schemaName = _typedSlotSchema typedSlot
 
 --------------------------------------------------------------------------------
 -- State transformer of commands

@@ -202,7 +202,7 @@ handleEvKey config brickState@BrickState {state, partial} key modifiers =
           result <-
             runReaderT
               (fromMaybe
-                 (parseResultT commandParser)
+                 (parseResultT (commandParser config))
                  partial
                  (pure (modifierInputs <> pure keyInput)))
               state

@@ -155,6 +155,7 @@ data CommandParseError
   | ManyProblems (NonEmpty (CommandParseError))
   | NoCurrentFocusedNode
   | NoNodeMatches
+  | NoSuchSchemaToQuery SchemaName
   deriving (Show)
 
 instance Semigroup CommandParseError where
